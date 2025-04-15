@@ -61,20 +61,6 @@ func main() {
 	var startButton *widget.Button
 
 	startButton = widget.NewButton("开始同步", func() {
-		startButton.Disabled()
-		source := sourceEntry.Text
-		target := targetEntry.Text
-
-		statusLabel.SetText("")
-		currentFileLabel.SetText("")
-		speedLabel.SetText("")
-		statsLabel.SetText("")
-		progressBar.SetValue(0)
-
-		if source == "" || target == "" {
-			statusLabel.SetText("错误: 请指定源文件夹和目标文件夹")
-			return
-		}
 
 		// 更新UI的goroutine
 		go func() {
@@ -100,6 +86,19 @@ func main() {
 			if stats.cur.Load() {
 				return
 			}
+			source := sourceEntry.Text
+			target := targetEntry.Text
+
+			statusLabel.SetText("")
+			currentFileLabel.SetText("")
+			speedLabel.SetText("")
+			statsLabel.SetText("")
+			progressBar.SetValue(0)
+			if source == "" || target == "" {
+				statusLabel.SetText("错误: 请指定源文件夹和目标文件夹")
+				return
+			}
+			startButton.Disabled()
 			defer startButton.Enable()
 			stats.cur.Store(true)
 			defer stats.cur.Store(false)
@@ -171,21 +170,19 @@ var storageFilter = storage.NewExtensionFileFilter([]string{".*"})
 
 func syncFolders(source, target string, stats *SyncStats) error {
 	// 首先统计总文件数
-	totalFiles := 0
+	stats.TotalFiles = 0
 	filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
-			totalFiles++
+			stats.TotalFiles++
 		}
 		return nil
 	})
 	filepath.Walk(target, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
-			totalFiles++
+			stats.TotalFiles++
 		}
 		return nil
 	})
-
-	stats.TotalFiles = totalFiles
 
 	// 同步源文件到目标
 	err := filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
