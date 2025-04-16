@@ -66,12 +66,15 @@ func main() {
 		go func() {
 			for {
 				if stats.TotalFiles > 0 {
-					progress := float64(stats.CopiedFiles+stats.DeletedFiles) / float64(stats.TotalFiles) * 100
-					progressBar.SetValue(progress)
-					statusLabel.SetText(fmt.Sprintf("正在同步: %d/%d 文件", stats.CopiedFiles+stats.DeletedFiles, stats.TotalFiles))
-					currentFileLabel.SetText("当前文件: " + stats.CurrentFile)
-					speedLabel.SetText(fmt.Sprintf("速度: %.2f MB/s", stats.Speed))
-					statsLabel.SetText(fmt.Sprintf("已复制: %d 文件, 已删除: %d 文件", stats.CopiedFiles, stats.DeletedFiles))
+					fyne.Do(func() {
+						progress := float64(stats.CopiedFiles+stats.DeletedFiles) / float64(stats.TotalFiles) * 100
+						progressBar.SetValue(progress)
+						statusLabel.SetText(fmt.Sprintf("正在同步: %d/%d 文件", stats.CopiedFiles+stats.DeletedFiles, stats.TotalFiles))
+						currentFileLabel.SetText("当前文件: " + stats.CurrentFile)
+						speedLabel.SetText(fmt.Sprintf("速度: %.2f MB/s", stats.Speed))
+						statsLabel.SetText(fmt.Sprintf("已复制: %d 文件, 已删除: %d 文件", stats.CopiedFiles, stats.DeletedFiles))
+					})
+
 				}
 				time.Sleep(100 * time.Millisecond)
 				if progressBar.Value >= 100 {
@@ -89,20 +92,25 @@ func main() {
 			source := sourceEntry.Text
 			target := targetEntry.Text
 
-			statusLabel.SetText("")
-			currentFileLabel.SetText("")
-			speedLabel.SetText("")
-			statsLabel.SetText("")
-			progressBar.SetValue(0)
+			fyne.Do(func() {
+				statusLabel.SetText("")
+				currentFileLabel.SetText("")
+				speedLabel.SetText("")
+				statsLabel.SetText("")
+				progressBar.SetValue(0)
+				startButton.Disabled()
+			})
+
 			if source == "" || target == "" {
-				statusLabel.SetText("错误: 请指定源文件夹和目标文件夹")
+				fyne.Do(func() { statusLabel.SetText("错误: 请指定源文件夹和目标文件夹") })
 				return
 			}
-			startButton.Disabled()
-			defer startButton.Enable()
 			stats.cur.Store(true)
 			defer stats.cur.Store(false)
-			defer progressBar.SetValue(100)
+			defer fyne.Do(func() {
+				startButton.Enable()
+				progressBar.SetValue(100)
+			})
 			stats.TotalFiles = 0
 			stats.BytesCopied = 0
 			stats.StartTime = time.Now()
@@ -114,8 +122,9 @@ func main() {
 			stats.ClearTarget = clearTarget.Checked
 			err := syncFolders(source, target, stats)
 			if err != nil {
-				statusLabel.SetText("错误: " + err.Error())
-				fmt.Println(err)
+				fyne.Do(func() {
+					statusLabel.SetText("错误: " + err.Error())
+				})
 			}
 
 		}()
